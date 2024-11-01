@@ -1,0 +1,21 @@
+{
+    "name": "stanleysie/hk-payment",
+    "description": "About call route of virtual payment.",
+    "type": "library",
+    "require": {
+        "php": "^7.2 || ^8.1"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Stanleysie\\HkPayment\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "wu gong Sie",
+            "email": "swookon@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
