@@ -40,28 +40,6 @@ class PaymentApiClient
     }
 
     /**
-     * Send webhook data for virtual account
-     *
-     * @param string $rawData XML formatted data as a string
-     * @return string
-     */
-    public function virtualAccountWebhook(string $rawData): string
-    {
-        try {
-            $response = $this->client->post('/payment/api/virtualaccount/webhook', [
-                'body' => $rawData,
-                'headers' => [
-                    'Content-Type' => 'application/xml',
-                ],
-            ]);
-
-            return $response->getBody()->getContents();
-        } catch (RequestException $e) {
-            return 'Webhook failed: ' . $e->getMessage();
-        }
-    }
-
-    /**
      * Get the exchange rate between currencies
      *
      * @param string $from From currency code
