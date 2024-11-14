@@ -30,7 +30,7 @@ class PaymentApiClient
     {
         try {
             $response = $this->client->post('/payment/api/create', [
-                'json' => $params,
+                'form_params' => $params, // Use form_params for x-www-form-urlencoded encoding
             ]);
 
             return json_decode($response->getBody()->getContents(), true);
