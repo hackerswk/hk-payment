@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Api;
+namespace Stanleysie\HkPayment;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
