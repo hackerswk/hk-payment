@@ -21,6 +21,25 @@ class PaymentApiClient
     }
 
     /**
+     * Interact with TapPay API for various actions
+     *
+     * @param array $params
+     * @return array
+     */
+    public function tappayAction(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay/api', [
+                'json' => $params, // Use JSON encoding for TapPay requests
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'TapPay action failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
      * Create a new payment order
      *
      * @param array $params

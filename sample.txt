@@ -1,0 +1,36 @@
+
+Example Usage
+
+Bind Card
+
+$paymentClient = new PaymentApiClient();
+
+$params = [
+    'action' => 'bind',
+    'partner_key' => 'your-partner-key',
+    'merchant_id' => 'your-merchant-id',
+    'prime' => 'test_prime_key',
+    'frontend_redirect_url' => 'https://example.com/redirect',
+    'backend_notify_url' => 'https://example.com/notify',
+    'go_back_url' => 'https://example.com/back',
+    'mobile_number' => '123456789',
+    'name' => 'John Doe',
+    'email' => 'john.doe@example.com',
+];
+
+$response = $paymentClient->tappayAction($params);
+print_r($response);
+
+Refund
+
+$params = [
+    'action' => 'refund',
+    'partner_key' => 'your-partner-key',
+    'merchant_id' => 'your-merchant-id',
+    'rec_trade_id' => 'test_rec_trade_id',
+];
+
+$response = $paymentClient->tappayAction($params);
+print_r($response);
+
+This implementation ensures the tappayAction method is versatile enough to handle any supported TapPay API action by dynamically processing the action parameter in the request.
