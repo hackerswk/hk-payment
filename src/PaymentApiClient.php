@@ -11,11 +11,13 @@ class PaymentApiClient
 
     /**
      * Constructor initializes Guzzle HTTP client
+     *
+     * @param string $baseUri Base URI for the HTTP client
      */
-    public function __construct()
+    public function __construct(string $baseUri)
     {
         $this->client = new Client([
-            'base_uri' => 'https://payment.holkee.com',
+            'base_uri' => $baseUri, // Use parameterized base URI
             'timeout' => 10.0,
         ]);
     }
