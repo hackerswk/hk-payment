@@ -33,17 +33,17 @@ class PaymentApiClient
         try {
             $response = $this->client->post('/tappay/api', [
                 'json' => $params,
+                'http_errors' => false, // ✅ 防止 Guzzle 把 400 視為異常
             ]);
 
-            // 解析 TapPay 回應
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
-            // ✅ 確保 TapPay 狀態碼為 0（成功）
+            // ✅ 如果 API 回應 status: 0，表示成功
             if (isset($responseBody['status']) && $responseBody['status'] === 0) {
                 return $responseBody;
             }
 
-            // ⚠️ 如果不是成功狀態，返回錯誤
+            // ⚠️ 其他狀態則返回錯誤
             return ['error' => 'TapPay API error: ' . json_encode($responseBody)];
         } catch (RequestException $e) {
             return ['error' => 'TapPay action failed: ' . $e->getMessage()];
