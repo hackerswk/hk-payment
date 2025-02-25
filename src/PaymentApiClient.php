@@ -1,5 +1,4 @@
 <?php
-
 namespace Stanleysie\HkPayment;
 
 use GuzzleHttp\Client;
@@ -18,7 +17,7 @@ class PaymentApiClient
     {
         $this->client = new Client([
             'base_uri' => $baseUri, // Use parameterized base URI
-            'timeout' => 10.0,
+            'timeout'  => 10.0,
         ]);
     }
 
@@ -32,7 +31,7 @@ class PaymentApiClient
     {
         try {
             $response = $this->client->post('/tappay/api', [
-                'json' => $params,
+                'json'        => $params,
                 'http_errors' => false, // ✅ 防止 Guzzle 把 400 當成異常
             ]);
 
@@ -45,12 +44,12 @@ class PaymentApiClient
 
             // ⚠️ 其他狀態則返回錯誤
             return [
-                'status' => 'failure',
+                'status'  => 'failure',
                 'message' => 'TapPay API error: ' . json_encode($responseBody),
             ];
         } catch (RequestException $e) {
             return [
-                'status' => 'failure',
+                'status'  => 'failure',
                 'message' => 'TapPay action failed: ' . $e->getMessage(),
             ];
         }
@@ -88,11 +87,11 @@ class PaymentApiClient
     public function getExchangeRate(string $from, string $to, float $fromAmount, string $type = 'up', int $point = 3): array
     {
         $query = [
-            'from' => $from,
-            'to' => $to,
+            'from'        => $from,
+            'to'          => $to,
             'from_amount' => $fromAmount,
-            'type' => $type,
-            'point' => $point,
+            'type'        => $type,
+            'point'       => $point,
         ];
 
         try {
@@ -103,6 +102,82 @@ class PaymentApiClient
             return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
             return ['error' => 'Exchange rate retrieval failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Create a new TapPay Merchant Partner Account
+     *
+     * @param array $params Partner account details
+     * @return array
+     */
+    public function createPartnerAccount(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-merchant/api/create-partner', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Partner account creation failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Submit Merchant Qualification
+     *
+     * @param array $params Qualification details
+     * @return array
+     */
+    public function submitQualification(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-merchant/api/submit-qualification', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Qualification submission failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Query Merchant Status
+     *
+     * @param array $params Query parameters
+     * @return array
+     */
+    public function queryMerchantStatus(array $params): array
+    {
+        try {
+            $response = $this->client->get('/tappay-merchant/api/query-status', [
+                'query' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Merchant status query failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Add a Payment Service to the Merchant Account
+     *
+     * @param array $params Payment service details
+     * @return array
+     */
+    public function addPaymentService(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-merchant/api/add-payment-service', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Add payment service failed: ' . $e->getMessage()];
         }
     }
 }
