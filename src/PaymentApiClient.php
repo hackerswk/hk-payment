@@ -180,4 +180,61 @@ class PaymentApiClient
             return ['error' => 'Add payment service failed: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Platform - Bind a credit card to a user account
+     *
+     * @param array $params Card binding details
+     * @return array
+     */
+    public function platformBindCard(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-platform/api/bind-card', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Card binding failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Platform - Pay using a Prime token
+     *
+     * @param array $params Payment details
+     * @return array
+     */
+    public function platformPayByPrime(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-platform/api/pay-by-prime', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Payment by Prime failed: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Platform - Pay using a Card Token
+     *
+     * @param array $params Payment details
+     * @return array
+     */
+    public function platformPayByCardToken(array $params): array
+    {
+        try {
+            $response = $this->client->post('/tappay-platform/api/pay-by-token', [
+                'json' => $params,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['error' => 'Payment by Card Token failed: ' . $e->getMessage()];
+        }
+    }
 }
