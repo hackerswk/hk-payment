@@ -237,4 +237,93 @@ class PaymentApiClient
             return ['error' => 'Payment by Card Token failed: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * ATM API - Pay by Prime
+     *
+     * @param array $params Payment details
+     * @return array
+     */
+    public function atmPayByPrime(array $params): array
+    {
+        return $this->sendATMRequest('pay-by-prime', $params);
+    }
+
+    /**
+     * ATM API - Get Trade Records
+     *
+     * @param array $filters Trade filters
+     * @return array
+     */
+    public function atmGetTradeRecords(array $filters): array
+    {
+        return $this->sendATMRequest('record', ['filters' => $filters]);
+    }
+
+    /**
+     * ATM API - Get Trade History
+     *
+     * @param string $recTradeId Trade ID
+     * @return array
+     */
+    public function atmGetTradeHistory(string $recTradeId): array
+    {
+        return $this->sendATMRequest('trade-history', ['rec_trade_id' => $recTradeId]);
+    }
+
+    /**
+     * ATM API - Reconciliation
+     *
+     * @param array $reconcileParams Reconciliation parameters
+     * @return array
+     */
+    public function atmReconciliation(array $reconcileParams): array
+    {
+        return $this->sendATMRequest('reconciliation', $reconcileParams);
+    }
+
+    /**
+     * ATM API - Simulate Payment
+     *
+     * @param string $recTradeId Trade ID
+     * @return array
+     */
+    public function atmSimulatePayment(string $recTradeId): array
+    {
+        return $this->sendATMRequest('simulate-paid', ['rec_trade_id' => $recTradeId]);
+    }
+
+    /**
+     * Common method to handle ATM API requests
+     *
+     * @param string $action API action
+     * @param array $data Request data
+     * @return array
+     */
+    private function sendATMRequest(string $action, array $data): array
+    {
+        try {
+            $data['action'] = $action;
+            $response       = $this->client->post('/tappay/atm-api', [
+                'json'        => $data,
+                'http_errors' => false,
+            ]);
+
+            $responseBody = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($responseBody['status']) && in_array($responseBody['status'], [0, 2])) {
+                return $responseBody;
+            }
+
+            return [
+                'status'  => 'failure',
+                'message' => 'ATM API error: ' . json_encode($responseBody),
+            ];
+        } catch (RequestException $e) {
+            return [
+                'status'  => 'failure',
+                'message' => 'ATM API request failed: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
