@@ -326,4 +326,51 @@ class PaymentApiClient
             ];
         }
     }
+
+    /**
+     * Upload qualification files for TapPay merchant verification.
+     *
+     * @param array $files Associative array with document keys and file paths.
+     * @param string $partnerAccount Partner account identifier.
+     * @param string $platformKey Platform key for TapPay.
+     * @return array
+     */
+    public function uploadQualificationFiles(array $files, string $partnerAccount, string $platformKey): array
+    {
+        $multipart = [
+            ['name' => 'platform_key', 'contents' => $platformKey],
+            ['name' => 'partner_account', 'contents' => $partnerAccount],
+        ];
+
+        foreach ($files as $paramName => $filePath) {
+            $absolutePath = storage_path('app/' . $filePath);
+
+            if (!file_exists($absolutePath)) {
+                return [
+                    'status'  => 'failure',
+                    'message' => "File not found: {$absolutePath}",
+                ];
+            }
+
+            $multipart[] = [
+                'name'     => $paramName,
+                'contents' => fopen($absolutePath, 'r'),
+                'filename' => basename($absolutePath),
+                'headers'  => ['Content-Type' => mime_content_type($absolutePath)],
+            ];
+        }
+
+        try {
+            $response = $this->client->post('/api/upload-qualification', [
+                'multipart' => $multipart,
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return [
+                'status' => 'failure',
+                'message' => 'Upload failed: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
