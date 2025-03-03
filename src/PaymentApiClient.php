@@ -361,7 +361,7 @@ class PaymentApiClient
         }
 
         try {
-            $response = $this->client->post('/api/upload-qualification', [
+            $response = $this->client->post('/tappay-merchant/api/upload-qualification', [
                 'multipart' => $multipart,
             ]);
 
