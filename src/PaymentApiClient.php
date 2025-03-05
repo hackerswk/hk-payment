@@ -341,8 +341,8 @@ class PaymentApiClient
         $url = rtrim($baseUri, '/') . '/tappay-merchant/api/upload-qualification';
 
         error_log("[UPLOAD] Sending request to: " . $url);
-        error_log("[UPLOAD] Base URI: " . $baseUri);
 
+        // ✅ 準備 multipart/form-data
         $multipart = [
             ['name' => 'platform_key', 'contents' => $platformKey],
             ['name' => 'partner_account', 'contents' => $partnerAccount],
@@ -370,21 +370,38 @@ class PaymentApiClient
         error_log("[UPLOAD] Prepared Multipart Data: " . print_r($multipart, true));
 
         try {
+            // ✅ 使用 Guzzle 進行 POST 請求
             $response = $this->client->post($url, [
                 'multipart'   => $multipart,
-                'http_errors' => false, // Avoid Guzzle throwing exceptions
-                'debug'       => true, // Enable debug mode to log request details
+                'http_errors' => false, // ✅ 避免 Guzzle 將 4xx/5xx 當作錯誤拋出
+                'debug'       => true,  // ✅ 啟用 debug，檢查請求內容
             ]);
 
-            if ($response->getStatusCode() !== 200) {
+            $statusCode = $response->getStatusCode();
+            $body       = $response->getBody()->getContents();
+
+            error_log("[UPLOAD RESPONSE] HTTP $statusCode: " . $body);
+
+            if ($statusCode !== 200) {
                 return [
                     'status'  => 'failure',
-                    'message' => "Upload failed: HTTP " . $response->getStatusCode(),
+                    'message' => "Upload failed: HTTP " . $statusCode,
                 ];
             }
 
-            return json_decode($response->getBody()->getContents(), true);
-        } catch (RequestException $e) {
+            // ✅ 確保 JSON 解析成功
+            $decodedResponse = json_decode($body, true);
+
+            if (is_null($decodedResponse)) {
+                return [
+                    'status'  => 'failure',
+                    'message' => 'Invalid JSON response from server',
+                    'raw'     => $body,
+                ];
+            }
+
+            return $decodedResponse;
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
             error_log("[UPLOAD ERROR] RequestException: " . $e->getMessage());
             return ['status' => 'failure', 'message' => 'Upload failed: ' . $e->getMessage()];
         } catch (\Exception $e) {
