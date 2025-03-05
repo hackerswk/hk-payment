@@ -337,40 +337,33 @@ class PaymentApiClient
      */
     public function uploadQualificationFiles(array $files, string $partnerAccount, string $platformKey): array
     {
+        $url = rtrim($this->client->getConfig('base_uri'), '/') . '/tappay-merchant/api/upload-qualification';
+
         $multipart = [
             ['name' => 'platform_key', 'contents' => $platformKey],
             ['name' => 'partner_account', 'contents' => $partnerAccount],
         ];
 
-        foreach ($files as $paramName => $filePath) {
-            $absolutePath = storage_path('app/' . $filePath);
-
-            if (!file_exists($absolutePath)) {
-                return [
-                    'status'  => 'failure',
-                    'message' => "File not found: {$absolutePath}",
-                ];
+        foreach ($files as $paramName => $file) {
+            if (!($file instanceof \Illuminate\Http\UploadedFile)) {
+                return ['status' => 'failure', 'message' => "Invalid file: {$paramName}"];
             }
 
             $multipart[] = [
                 'name'     => $paramName,
-                'contents' => fopen($absolutePath, 'r'),
-                'filename' => basename($absolutePath),
-                'headers'  => ['Content-Type' => mime_content_type($absolutePath)],
+                'contents' => fopen($file->getPathname(), 'r'),
+                'filename' => $file->getClientOriginalName(),
+                'headers'  => ['Content-Type' => $file->getMimeType()],
             ];
         }
 
         try {
-            $response = $this->client->post('/tappay-merchant/api/upload-qualification', [
-                'multipart' => $multipart,
-            ]);
+            // ✅ Sends files directly to A server
+            $response = $this->client->post($url, ['multipart' => $multipart]);
 
             return json_decode($response->getBody()->getContents(), true);
-        } catch (\Exception $e) {
-            return [
-                'status' => 'failure',
-                'message' => 'Upload failed: ' . $e->getMessage(),
-            ];
+        } catch (RequestException $e) {
+            return ['status' => 'failure', 'message' => 'Upload failed: ' . $e->getMessage()];
         }
     }
 }
