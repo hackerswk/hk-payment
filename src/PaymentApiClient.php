@@ -337,15 +337,17 @@ class PaymentApiClient
      */
     public function uploadQualificationFiles(array $files, string $partnerAccount, string $platformKey): array
     {
-        $url = rtrim($this->client->getConfig('base_uri'), '/') . '/tappay-merchant/api/upload-qualification';
+        $baseUri = $this->client->getConfig('base_uri') ?? ''; // 確保 `base_uri` 存在
+        $url = rtrim($baseUri, '/') . '/tappay-merchant/api/upload-qualification';
 
+        // ✅ 組裝 `multipart` 請求
         $multipart = [
             ['name' => 'platform_key', 'contents' => $platformKey],
             ['name' => 'partner_account', 'contents' => $partnerAccount],
         ];
 
         foreach ($files as $paramName => $file) {
-            if (!($file instanceof \Illuminate\Http\UploadedFile)) {
+            if (!is_a($file, \Illuminate\Http\UploadedFile::class)) {
                 return ['status' => 'failure', 'message' => "Invalid file: {$paramName}"];
             }
 
@@ -358,12 +360,25 @@ class PaymentApiClient
         }
 
         try {
-            // ✅ Sends files directly to A server
-            $response = $this->client->post($url, ['multipart' => $multipart]);
+            // ✅ 發送 Guzzle 請求
+            $response = $this->client->post($url, [
+                'multipart'   => $multipart,
+                'http_errors' => false, // ✅ 避免 Guzzle 自動拋出 4xx/5xx 錯誤
+            ]);
+
+            // ✅ 檢查 HTTP 狀態碼
+            if ($response->getStatusCode() !== 200) {
+                return [
+                    'status'  => 'failure',
+                    'message' => "Upload failed: HTTP " . $response->getStatusCode(),
+                ];
+            }
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
             return ['status' => 'failure', 'message' => 'Upload failed: ' . $e->getMessage()];
+        } catch (\Exception $e) {
+            return ['status' => 'failure', 'message' => 'Unexpected error: ' . $e->getMessage()];
         }
     }
 }
