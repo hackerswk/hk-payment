@@ -337,10 +337,12 @@ class PaymentApiClient
      */
     public function uploadQualificationFiles(array $files, string $partnerAccount, string $platformKey): array
     {
-        $baseUri = $this->client->getConfig('base_uri') ?? ''; // 確保 `base_uri` 存在
+        $baseUri = $this->client->getConfig('base_uri') ?? '';
         $url = rtrim($baseUri, '/') . '/tappay-merchant/api/upload-qualification';
 
-        // ✅ 組裝 `multipart` 請求
+        error_log("[UPLOAD] Sending request to: " . $url);
+        error_log("[UPLOAD] Base URI: " . $baseUri);
+
         $multipart = [
             ['name' => 'platform_key', 'contents' => $platformKey],
             ['name' => 'partner_account', 'contents' => $partnerAccount],
@@ -351,22 +353,29 @@ class PaymentApiClient
                 return ['status' => 'failure', 'message' => "Invalid file: {$paramName}"];
             }
 
+            $filePath = $file->getPathname();
+
+            if (!file_exists($filePath)) {
+                return ['status' => 'failure', 'message' => "File not found: {$filePath}"];
+            }
+
             $multipart[] = [
                 'name'     => $paramName,
-                'contents' => fopen($file->getPathname(), 'r'),
+                'contents' => fopen($filePath, 'r'),
                 'filename' => $file->getClientOriginalName(),
                 'headers'  => ['Content-Type' => $file->getMimeType()],
             ];
         }
 
+        error_log("[UPLOAD] Prepared Multipart Data: " . print_r($multipart, true));
+
         try {
-            // ✅ 發送 Guzzle 請求
             $response = $this->client->post($url, [
                 'multipart'   => $multipart,
-                'http_errors' => false, // ✅ 避免 Guzzle 自動拋出 4xx/5xx 錯誤
+                'http_errors' => false, // Avoid Guzzle throwing exceptions
+                'debug'       => true, // Enable debug mode to log request details
             ]);
 
-            // ✅ 檢查 HTTP 狀態碼
             if ($response->getStatusCode() !== 200) {
                 return [
                     'status'  => 'failure',
@@ -376,8 +385,10 @@ class PaymentApiClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
+            error_log("[UPLOAD ERROR] RequestException: " . $e->getMessage());
             return ['status' => 'failure', 'message' => 'Upload failed: ' . $e->getMessage()];
         } catch (\Exception $e) {
+            error_log("[UPLOAD ERROR] General Exception: " . $e->getMessage());
             return ['status' => 'failure', 'message' => 'Unexpected error: ' . $e->getMessage()];
         }
     }
