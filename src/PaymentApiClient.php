@@ -255,9 +255,9 @@ class PaymentApiClient
      * @param array $filters Trade filters
      * @return array
      */
-    public function atmGetTradeRecords(array $filters): array
+    public function atmGetTradeRecords(array $params): array
     {
-        return $this->sendATMRequest('record', ['filters' => $filters]);
+        return $this->sendATMRequest('record', $params);
     }
 
     /**
@@ -266,9 +266,9 @@ class PaymentApiClient
      * @param string $recTradeId Trade ID
      * @return array
      */
-    public function atmGetTradeHistory(string $recTradeId): array
+    public function atmGetTradeHistory(string $params): array
     {
-        return $this->sendATMRequest('trade-history', ['rec_trade_id' => $recTradeId]);
+        return $this->sendATMRequest('trade-history', $params);
     }
 
     /**
@@ -288,9 +288,9 @@ class PaymentApiClient
      * @param string $recTradeId Trade ID
      * @return array
      */
-    public function atmSimulatePayment(string $recTradeId): array
+    public function atmSimulatePayment(array $params): array
     {
-        return $this->sendATMRequest('simulate-paid', ['rec_trade_id' => $recTradeId]);
+        return $this->sendATMRequest('simulate-paid', $params);
     }
 
     /**
