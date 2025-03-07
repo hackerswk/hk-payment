@@ -266,7 +266,7 @@ class PaymentApiClient
      * @param string $recTradeId Trade ID
      * @return array
      */
-    public function atmGetTradeHistory(string $params): array
+    public function atmGetTradeHistory(array $params): array
     {
         return $this->sendATMRequest('trade-history', $params);
     }
