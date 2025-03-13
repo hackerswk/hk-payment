@@ -409,4 +409,24 @@ class PaymentApiClient
             return ['status' => 'failure', 'message' => 'Unexpected error: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Create a PayPal payment via A Server
+     *
+     * @param array $params Payment details (user_id, total, currency, description, return_url, cancel_url)
+     * @return array
+     */
+    public function createPaypalPayment(array $params): array
+    {
+        try {
+            $response = $this->client->post('/paypal/api/create-payment', [
+                'json' => $params,
+                'http_errors' => false, // Prevent Guzzle from throwing exceptions for 4xx/5xx responses
+            ]);
+
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return ['status' => 'failure', 'message' => 'PayPal payment request failed: ' . $e->getMessage()];
+        }
+    }
 }
