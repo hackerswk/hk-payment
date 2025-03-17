@@ -38,15 +38,17 @@ class PaymentApiClient
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
             // ✅ 允許 `status: 0` (成功) & `status: 2` (查詢成功)
-            if (isset($responseBody['status']) && in_array($responseBody['status'], [0, 2])) {
-                return $responseBody;
-            }
+            //if (isset($responseBody['status']) && in_array($responseBody['status'], [0, 2])) {
+            return $responseBody;
+            //}
 
             // ⚠️ 其他狀態則返回錯誤
+            /*
             return [
                 'status'  => 'failure',
                 'message' => 'TapPay API error: ' . json_encode($responseBody),
             ];
+            */
         } catch (RequestException $e) {
             return [
                 'status'  => 'failure',
