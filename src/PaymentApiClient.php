@@ -37,21 +37,40 @@ class PaymentApiClient
 
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
-            // ✅ 允許 `status: 0` (成功) & `status: 2` (查詢成功)
-            //if (isset($responseBody['status']) && in_array($responseBody['status'], [0, 2])) {
-            return $responseBody;
-            //}
+            switch ($params['action']) {
+                case 'pay-by-prime':
+                case 'pay-by-token':
+                case 'bind':
+                case 'remove':
+                case 'history':
+                case 'refund':
+                    if ($responseBody['status'] === 0) {
+                        $responseBody['status'] = 1; // ✅ 表示成功
+                    } else {
+                        $responseBody['status'] = 0; // ❌ 表示失敗
+                    }
+                    break;
 
-            // ⚠️ 其他狀態則返回錯誤
-            /*
-            return [
-                'status'  => 'failure',
-                'message' => 'TapPay API error: ' . json_encode($responseBody),
-            ];
-            */
+                case 'query':
+                    if ($responseBody['status'] === 2) {
+                        $responseBody['status'] = 1; // ✅ 表示成功
+                    } else {
+                        $responseBody['status'] = 0; // ❌ 表示失敗
+                    }
+                    break;
+
+                default:
+                    return [
+                        'status'  => 0,
+                        'message' => 'Unsupported TapPay action: ' . ($params['action'] ?? 'undefined'),
+                    ];
+            }
+
+            return $responseBody;
+
         } catch (RequestException $e) {
             return [
-                'status'  => 'failure',
+                'status'  => 0,
                 'message' => 'TapPay action failed: ' . $e->getMessage(),
             ];
         }
@@ -340,7 +359,7 @@ class PaymentApiClient
     public function uploadQualificationFiles(array $files, string $partnerAccount, string $platformKey): array
     {
         $baseUri = $this->client->getConfig('base_uri') ?? '';
-        $url = rtrim($baseUri, '/') . '/tappay-merchant/api/upload-qualification';
+        $url     = rtrim($baseUri, '/') . '/tappay-merchant/api/upload-qualification';
 
         error_log("[UPLOAD] Sending request to: " . $url);
 
@@ -351,13 +370,13 @@ class PaymentApiClient
         ];
 
         foreach ($files as $paramName => $file) {
-            if (!is_a($file, \Illuminate\Http\UploadedFile::class)) {
+            if (! is_a($file, \Illuminate\Http\UploadedFile::class)) {
                 return ['status' => 'failure', 'message' => "Invalid file: {$paramName}"];
             }
 
             $filePath = $file->getPathname();
 
-            if (!file_exists($filePath)) {
+            if (! file_exists($filePath)) {
                 return ['status' => 'failure', 'message' => "File not found: {$filePath}"];
             }
 
@@ -422,7 +441,7 @@ class PaymentApiClient
     {
         try {
             $response = $this->client->post('/paypal/api/create-payment', [
-                'json' => $params,
+                'json'        => $params,
                 'http_errors' => false, // Prevent Guzzle from throwing exceptions for 4xx/5xx responses
             ]);
 
