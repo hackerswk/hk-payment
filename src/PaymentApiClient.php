@@ -22,6 +22,44 @@ class PaymentApiClient
     }
 
     /**
+     * Dispatches a payment-related method directly by name.
+     *
+     * This generic method routes execution to a supported internal method.
+     * Supported method names include:
+     *
+     * - tappayAction
+     * - createPayment
+     * - createPaypalPayment
+     * - platformBindCard
+     * - platformPayByPrime
+     * - platformPayByCardToken
+     * - atm-prefixed methods (e.g., atmPayByPrime, atmGetTradeRecords, atmSimulatePayment)
+     *
+     * ⚠️ The method name must match exactly and be defined as a public method in this class.
+     *
+     * @param string $method The name of the method to invoke.
+     * @param array  $params The parameters to pass to the method.
+     *
+     * @return array The response returned by the target method. If the method is not supported,
+     *               returns ['status' => 0, 'message' => 'Unsupported method'].
+     *
+     * @example
+     * $client = new PaymentApiClient('https://api.example.com');
+     * $client->dispatchPaymentAction('tappayAction', [...]);
+     */
+    public function dispatchPaymentAction(string $method, array $params): array
+    {
+        if (method_exists($this, $method)) {
+            return $this->$method($params);
+        }
+
+        return [
+            'status'  => 0,
+            'message' => "Unsupported method: {$method}",
+        ];
+    }
+
+    /**
      * Interact with TapPay API for various actions
      *
      * @param array $params
@@ -86,12 +124,24 @@ class PaymentApiClient
     {
         try {
             $response = $this->client->post('/payment/api/create', [
-                'form_params' => $params, // Use form_params for x-www-form-urlencoded encoding
+                'form_params' => $params, // x-www-form-urlencoded encoding
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            // ✅ 如果有明確 ok => true，則代表成功，否則為失敗
+            if (isset($body['ok']) && $body['ok'] === true) {
+                $body['status'] = 1;
+            } else {
+                $body['status'] = 0;
+            }
+
+            return $body;
         } catch (RequestException $e) {
-            return ['error' => 'Payment creation failed: ' . $e->getMessage()];
+            return [
+                'status'  => 0,
+                'message' => 'Payment creation failed: ' . $e->getMessage(),
+            ];
         }
     }
 
@@ -215,9 +265,18 @@ class PaymentApiClient
                 'json' => $params,
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            // 狀態處理
+            if (isset($data['status']) && $data['status'] === 0) {
+                $data['status'] = 1;
+            } else {
+                $data['status'] = 0;
+            }
+
+            return $data;
         } catch (RequestException $e) {
-            return ['error' => 'Card binding failed: ' . $e->getMessage()];
+            return ['status' => 0, 'message' => 'Card binding failed: ' . $e->getMessage()];
         }
     }
 
@@ -234,9 +293,17 @@ class PaymentApiClient
                 'json' => $params,
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($data['status']) && $data['status'] === 0) {
+                $data['status'] = 1;
+            } else {
+                $data['status'] = 0;
+            }
+
+            return $data;
         } catch (RequestException $e) {
-            return ['error' => 'Payment by Prime failed: ' . $e->getMessage()];
+            return ['status' => 0, 'message' => 'Payment by Prime failed: ' . $e->getMessage()];
         }
     }
 
@@ -253,9 +320,17 @@ class PaymentApiClient
                 'json' => $params,
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($data['status']) && $data['status'] === 0) {
+                $data['status'] = 1;
+            } else {
+                $data['status'] = 0;
+            }
+
+            return $data;
         } catch (RequestException $e) {
-            return ['error' => 'Payment by Card Token failed: ' . $e->getMessage()];
+            return ['status' => 0, 'message' => 'Payment by Card Token failed: ' . $e->getMessage()];
         }
     }
 
@@ -325,24 +400,35 @@ class PaymentApiClient
     {
         try {
             $data['action'] = $action;
-            $response       = $this->client->post('/tappay/atm-api', [
+
+            $response = $this->client->post('/tappay/atm-api', [
                 'json'        => $data,
                 'http_errors' => false,
             ]);
 
             $responseBody = json_decode($response->getBody()->getContents(), true);
 
+            if (! is_array($responseBody)) {
+                return [
+                    'status'  => 0,
+                    'message' => 'Invalid JSON response from ATM API',
+                ];
+            }
+
+            // ✅ 統一成功判定：status 為 0 或 2 時視為成功，轉換為 1
             if (isset($responseBody['status']) && in_array($responseBody['status'], [0, 2])) {
+                $responseBody['status'] = 1;
                 return $responseBody;
             }
 
+            // ❌ 統一錯誤格式
             return [
-                'status'  => 'failure',
+                'status'  => 0,
                 'message' => 'ATM API error: ' . json_encode($responseBody),
             ];
         } catch (RequestException $e) {
             return [
-                'status'  => 'failure',
+                'status'  => 0,
                 'message' => 'ATM API request failed: ' . $e->getMessage(),
             ];
         }
@@ -442,12 +528,24 @@ class PaymentApiClient
         try {
             $response = $this->client->post('/paypal/api/create-payment', [
                 'json'        => $params,
-                'http_errors' => false, // Prevent Guzzle from throwing exceptions for 4xx/5xx responses
+                'http_errors' => false,
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            // ✅ 根據 success 判斷是否成功
+            if (isset($body['success']) && $body['success'] === true) {
+                $body['status'] = 1; // 成功
+            } else {
+                $body['status'] = 0; // 失敗
+            }
+
+            return $body;
         } catch (RequestException $e) {
-            return ['status' => 'failure', 'message' => 'PayPal payment request failed: ' . $e->getMessage()];
+            return [
+                'status'  => 0,
+                'message' => 'PayPal payment request failed: ' . $e->getMessage(),
+            ];
         }
     }
 }
